@@ -1,0 +1,709 @@
+---
+title: "StatComp Project 2: Scottish weather"
+author: "Lorenzo Stigliano (s1725018, LorenzoStigliano)"
+output:
+  html_document:
+    number_sections: yes
+    code_folding: hide
+  pdf_document:
+    number_sections: yes
+header-includes:
+  - \newcommand{\bm}[1]{\boldsymbol{#1}}
+  - \newcommand{\mat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+---
+
+```{r setup, include = FALSE}
+# Set default code chunk options
+knitr::opts_chunk$set(
+  echo = TRUE, # Note: the code_folding option above will hide code until the
+  #       a button to view it
+  eval = TRUE
+)
+```
+
+# Weather data
+
+```{r my-setup}
+# Modify this code chunk to add extra packages etc if needed,
+# and to load the weather data.
+
+# Load function definitions
+source("my_functions.R")
+
+# Load common packages
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(StatCompLab))
+suppressPackageStartupMessages(library(shiny))
+
+# load data in
+data(ghcnd_stations, package = "StatCompLab")
+data(ghcnd_values, package = "StatCompLab")
+
+# Rename the stations such that they are more legible on the graphs
+ghcnd_stations$Name[7] <- "ROYAL BOTANICAL GARDEN"
+ghcnd_stations$Name[8] <- "BENMORE"
+
+theme_set(theme_bw())
+```
+
+# Climate trends and variability 
+
+In this section we hope to highlight the climate trends in Scotland by using the
+data from The Global Historical Climatology Network. We hope to show
+trends across different stations by using linear models for each month. 
+Furthermore, we hope to check if there is any seasonally temperature variability. 
+
+## Monthly trends
+
+In this question we are asked to estimate the long-term temporal trend in TMIN 
+for each month, for each weather station. To do this we have begin by finding 
+the mean TMIN for each month of every year and then fit a linear model for 
+each month and each station over all years. 
+
+Below I have illustrated an example of what we are doing for each month and for 
+each station, so it is easier to visualize the data later on.
+```{r, fig.width=12, fig.height=8}
+# read data saved before, to find average TMIN per month
+data <- readRDS(file = "data/2_1_data.rds")
+
+# get id of the station for BRAEMAR
+id <- ghcnd_stations[1, 1]
+
+# get the month in this case January for the station of interest
+month_data <- filter(data, data$Month == 1, ID == id)
+
+# Plot the linear model and the points to show what we are doing
+plot(month_data$Year, month_data$TMIN,
+  main = "Plotting linear model for January for Station BRAEMAR over all years.",
+  xlab = "Year", ylab = "TMIN (in degrees Celsius)"
+)
+abline(lm(month_data$TMIN ~ 1 + month_data$Year))
+```
+
+In this example, we can clearly see an upward trend, suggesting increasing temperatures
+throughout the years. But we now need to generalize this for all stations and all months.
+In particular we are interested in the long-term temporal trend in TMIN for each 
+month. In order to get this information we are interested in the regression 
+coefficients, these will give us the trend over the years. To get this information
+we created a function called $\textit{monthly_trends()}$ which calculates the monthly
+trends for each month and for each station, together with confidence intervals 
+for the coefficient value.
+
+In fact, the particular data structure produced by the function 
+$\textit{monthly_trends()}$ has the of the following form:
+
+1. Name: Name of the station
+2. Id: Id of the station
+3. Month: Month of interest 
+4. Coeff: Regression coefficient for linear model multiplied by 10, such that we
+can see the $\textit{change per decade}$ of the average temperature for each month.
+5. Lower_Bound: Lower bound on the confidence interval for the coefficient
+6. Upper_Bound: Upper bound on the confidence interval for the coefficient
+
+Once we have the data for all months and stations we are ready to plot this. In 
+this case what we have done is plot the regression coefficients for each month
+and plotted separate figures for each station, as seen below. Furthermore,
+when we reffer to the coefficient we will be referring to the coefficient for linear 
+model multiplied by 10 such that it is showing use the $\textit{change per decade}$ 
+of the average temperature for each month.
+
+```{r, fig.width=12, fig.height=8}
+# Get the coefficient data
+coeff_data <- readRDS(file = "data/2_1_coeff_data.rds")
+# Use the plot_coeff function to plot this data
+plot_coeff(coeff_data)
+```
+
+We are now ready to discuss the results above. There are several aspects we can 
+talk about. The first question we will tackle is: $\textit{Is the behavior across all of the stations the same?}$ 
+We can see that the trends across all the stations behave in a similar fashion. 
+That is we have a constant value for the coefficients across all stations where most
+of them are greater than 0. Furthermore, when we take into account our confidence intervals they are 
+all mostly greater than 0 for all stations. However, we need to understand why we 
+see similar results across all stations. In fact, this can be explained because 
+of the location of where these measurements where taken.
+We have created models from stations which are $\textbf{exclusively}$ in Scotland. 
+Perhaps, if these measurements where take in a different geographical area of the 
+world we could have seen different rates of change. Furthermore, Scotland is a 
+country predominantly surrounded by bodies of water. This could in fact cause 
+Scotland to have lower rates of temperature increase than in other parts of the 
+world due to the cooling effect of oceans. As a result, since the stations are
+located in a particular part of the world we would expect to see simialr trends
+across a large time scale, 58 years, for which we are creating the linear models for.
+
+Another question we can ask is: $\textit{Is there an average temperature change per decade?}$ 
+We can see that most of the coefficients in all stations are between 0 and 0.5. This indicates
+that there has been an increase of temperature over a decade for each month. Furthermore,
+this patterns seems to be consistent for all stations. Therefore,
+there is an average temperature change per decade which is around 0.2 for all stations. 
+This comes to no surprise, this highlights the problem of global warming which we are experiencing worldwide. In fact, our results are consistent with various reports which calculated an increase of 
+approximately 0.2 degrees per decade (with high confidence). 
+This article can be found at https://www.ipcc.ch/sr15/chapter/chapter-1/. 
+
+Furthermore, we can also ask ourselves: $\textit{Are there any seasonal trends?}$
+When we look at the coefficients for each month, that is, the 
+$\textit{change per decade}$ of the average TMIN temperature, 
+we see that for all stations there does not seem to be seasonal variability. 
+In fact, there seems to be a consistent increase in temperatures throughout all the 
+months with no seasonal variability. Again, this makes sense since this means that 
+the rate of increase of the temperatures are independent of the 
+season, which suggests that an sustained increase of temperatures throughout 
+all the months over the decades. This means that we are in fact seeing a temperature
+rise for all seasons, supporting the fact that global warming is in fact coming 
+into effect. However, it is worth noting that there are small peaks in all stations, 
+in particular in February and November. We will now explain why this is the case. 
+
+This can be explained perhaps by the seasons. We know that the seasonal changes 
+occur on the March 1 for winter to spring and December 1 for autumn to winter. 
+Therefore we can see that the month before these start dates in fact have 
+a higher change per decade than other months. This suggests that the change of 
+season is more pronounced and as a result we see higher rate of increase over these months.
+
+Furthermore, we need to consider if these rates of change are reliable. We need 
+to consider the time frame we are analyzing the data for. The data is collected 
+from 1960 to 2018. Since we are only dealing with a 58 year range we can in fact 
+use this analysis for how the climate trend varies. Suppose we where dealing 
+with a wider range from years for example from 1960 back to the year 0. 
+Then our linear models would in assume that our temperatures can go back to the
+intercept of the model, that is when the year is 0. If we look at the y-intercept 
+for the BRAEMAR linear models for each month as seen from the table below
+we can see that most of them are negative with the largest value
+at 2.70 and the smallest at -95.15. Therefore, it would not make sense to 
+generalize this analysis if we are dealing with larger time periods. Since it
+assumes that we have very extreme negative temperatures for the several months 
+at the year 0 which we know is not the case.
+
+```{r}
+# Get the intercepts and the stations
+intercepts <- coeff_data %>%
+  filter(ID == id) %>%
+  select(c(Month, Intercept))
+
+# Show the intercepts of one month of the models created
+knitr::kable(intercepts, digits = 3)
+```
+
+## Seasonally varying variability
+
+For the rest of the project we will focus on the BRAMEAR weather
+station.
+
+In this question we are asked to perform a randomization test for whether 
+the the variance of the daily TMIN residuals from the monthly averages is larger 
+than the overall residual variance for each month. To do this we will work with
+the residuals, these are given by $R_t = \text{TMIN}_t - \text{TMIN}_{M(t)}$. 
+That is from the daily $\text{TMIN}_t$ we subtract the average $\text{TMIN}$ 
+of the month $M$ it came from $\text{TMIN}_{M(t)}$. 
+
+In our case, the hypothesis for each month that should be tested aregiven in the 
+following form:
+$$
+H_0 = \text{The residual variance is the same for all months of the year.}\\
+H_1 = \text{The residual variance of Janurary is} \textbf{ greater } \text{ than the overall variance.}
+$$
+Notice that we can change January for any other month. 
+As a result our test statistic will be in the form of:
+$$
+T = Var(\text{Residuals for January}) - Var(\text{Residuals for all months})
+$$
+Where, again, January can be any month. Notice that we will be doing a one sided test, 
+since we want to see of if the residual for each month is $\textbf{greater}$ than the 
+residuals for all months. To do this we run the randomization test by using the 
+$\textit{randomisation_test()}$ function. In particular, we are interested in the 
+proportions of permutations that are $\textbf{greater}$ than the test statistic $T$,
+this will be the p-value of our test. Furthermore, the number of permutations 
+used was 2500, such that the bound on the estimation standard deviation is $\leq 0.01.$
+
+```{r}
+# Load in the p-values calculated
+p_values <- readRDS(file = "data/2_2_p_values.rds")
+# Display the p-values for each month
+knitr::kable(p_values, digits = 3)
+```
+
+The table above shows us the p-values for all the months for the weather station
+BRAMEAR. We can see that the following months: January, February, November and 
+December have p-values equal to 0. Since the p-value < 0.01, we reject $H_0$ in 
+favor of $H_1$ for these months at the 0.01 level. 
+The remaining months, that is, March, April, May, June, July, August, September 
+and October, since these p-values are greater than 0.01, we do not reject 
+$H_0$ in favor of $H_1$ at the 0.01 significance level.
+
+But what does this mean? For the months January, February, November and 
+December we know that the we have reject $H_0$ in favor of $H_1$, as a result,
+we have enough evidence to conclude that the residuals variance for these months 
+is greater than all the residual for all months.
+In fact, this can be seen from the $\textbf{Month_Residuals}$ column. 
+This suggests that the variability of temperatures for these months is much greater.
+That is the daily $\text{TMIN}$ fluctuate away from $\text{TMIN}_{M(t)}$. As a 
+result, this means that the colder months, that is the winter months, have days 
+where many days are warm and many other days are colder than the mean. Suggesting
+volatility in temperatures recorded. In contrast to the warmer months that have a 
+large p-value which suggests that the residual variance is in fact small 
+again this can be seen from the $\textbf{Month_Residuals}$ column. Perhaps, 
+to explain why $\text{TMIN}$ temperatures vary more in winter 
+months in contrast to the summer months could be because if we look at the rates
+of change temperatures for the first graph we in fact see that in particular
+February and November had a higher rate of change per decade than the other months
+as a result this could indicate more volatile $\text{TMIN}$ temperatures in these
+months, and as a result we see high variance of the residuals. 
+
+Furthermore, in the table above we have also shown the two side p-values for 
+the two sided test calculated by using $2min(p, 1- p)$. The hypothesis for 
+a two sided test is given by:
+$$
+H_0 = \text{The residual variance is the same for all months of the year.}\\
+H_1 = \text{The residual variance of Janurary is} \textbf{ not the same to } \text{ the overall variance.}
+$$
+Where, again, January can be any month.
+In this case what the two sided test is telling us is that
+there is a $\textbf{significant difference}$ in the residual variance of a given month,
+this could either be an increase or a decrease. This means that it also includes
+months in which the variance of the residuals is in fact smaller than across all
+months, this indicates that the daily $\text{TMIN}$ temperatures are in fact 
+close to the $\text{TMIN}_{M(t)}$ for that given month. When we carry out the two
+sided test we can see that in this case we have more months in which the p-value
+$< 0.01/2 = 0.005$ (since we are doing a two sided test). In particular, the months
+from April to August. These months are the summer months, this means that the 
+residuals are not equal to the overall variance for these months.
+
+To conclude we need to answer the question, 
+$\textit{Is the temperature variability the same for each month of the year?}$
+As we have seen from the one sided test is that this is not the case, in fact we 
+saw that the winter months had higher variability. Furthermore, when we carried
+out the two sided test we also had evidence to suggest that the summer months did
+not have the same variability. Furthermore, it is worth mentioning that months 
+3 and 10, that is March and October, did not have significant temperature 
+variability in both the one-sided and two-sided tests since in both case the 
+p-values where between 0.6 and 0.8.
+
+# Spatial weather prediction
+
+We will now shift out attention to building models for weather prediction, in 
+particular we are interested in building linear models to predict the daily $\text{TMAX}$
+of a given station by using the daily $\text{TMAX}$ from other stations as the 
+covariates. We hope to be able to good models and then asses them to see how
+well they are preforming. Being able to predict temperatures by using other stations
+is particularly important. An example of the usage of linear models, is for example,
+suppose if a station went down and could not produce results, then we could make 
+a prediction of what the weather was like on a given day. Furthermore, being able 
+to predict temperatures is an important attribute to forecast. This is 
+because agriculture sectors, as well as many other industries, are largely 
+dependent on the weather conditions, thus being able to produce good models is 
+key for these sectors to operate optimally.
+
+## Estimation
+
+In this part of the project we are asked to choose a weather station, and make code for 
+estimating a linear model that uses daily $\text{TMAX}$ at the other weather stations as 
+covariates for  $\text{TMAX}$ at the chosen station.
+
+Again, like in the previous section we will be using the BRAMEAR weather station.
+
+To do this we have created a linear model using the daily $\text{TMAX}$ at the other 
+stations as the covariates to predict the daily $\text{TMAX}$ at BRAMEAR which in this case is the
+dependent variable of the linear model.To do this we need to first augment the
+data such that we have columns for each of the stations with the daily 
+$\text{TMAX}$ values as their entries. In order to be able to make this linear model. 
+I have augmented the data in my_code.R file in the "Question 3.1 setup" section. 
+What we have done:
+
+1. First renamed the columns of "ROYAL BOTANICAL GARDEN" and "BENMORE" such that 
+they are more legible when we plot them. 
+2. We then joined ghcnd_values and ghcnd_stations data by ID, these data sets are 
+the ones given to us.
+3. Then we pivot wider the Elements column such that we can get a column for $\text{TMAX}$
+4. We then picked the columns of interest in particular: $\text{TMAX}$, Year, Month, Day and Name.
+5. We pivot wider again but this case on Name such that we create columns for each of 
+the stations which have the $\text{TMAX}$ value for the given day as their entry. This 
+step was vital in order to be able to use the other stations as the covariates of
+our linear model.
+6. We dropped any row with NA values.
+7. Finally, we added a new column to this data frame called "Date" which allows us 
+to plot time series data easily as we shall see later.
+
+This data frame will be used throughout this section. For both the Estimation and 
+the Prediction sections.
+
+Once we have this data frame we are ready to create linear models for each month 
+for the daily TMAX for BRAMEAR as the dependent variable and the other stations daily 
+TMAX as covairates of the linear model. We use the function $\textit{get_model_coeff()}$
+to get the coefficients for the models for each month.
+
+It is important to understand why we are fitting a linear model for each month, 
+why don't we just fit one model for all the months? When fitting regression models 
+to seasonal time series data to estimate monthly or 
+quarterly effects, one needs to be able to take these into account differences in
+the seasons by using different models. This is because we know that the temperatures for the winter 
+months are smaller than that of the summer months and as a result it is vital 
+to be able to produce different models for each month. As a result, by incorporating
+our knowledge about the different temperatures for each month we can create better
+linear models to predict daily $\text{TMAX}$ temperatures. Furthermore, it is 
+worth mentioning that if we did not have sufficient data to create good linear 
+models perhaps creating for each month then we could instead create 
+4 linear models, one for each season. This could be a good
+way of over coming small amounts of data since we know that the season have similar temperatures.
+
+We will begin by visualizing the linear models created for each month. To do this 
+we make use of Prediction-Observation scatter plots. These plots show the prediction 
+of the linear model against the observation, what we would expect to see. 
+Therefore, a good linear model should plot points along the line $y=x$ since 
+this would indicate that the predictions are the same as the observations. 
+
+To do this, as mentioned above, we created a linear model for each month 
+using all the data over all years. Then we predicted the daily $\text{TMAX}$ 
+values for all the years and months using the same data and 
+plotted the observed daily $\text{TMAX}$ 
+values against it. We would hope that these plots are close to the line $y=x$.
+To do this we made use of the $\textit{plot_actual_pred()}$ function.
+
+```{r, fig.width=12, fig.height=8}
+data <- readRDS(file = "data/3_1_data.rds")
+
+# station of interest, the dependent variable of the linear model
+station <- "BRAEMAR"
+# covariates for the linear model
+covariates <- c(
+  "BALMORAL", "ARDTALNAIG", "FASKALLY",
+  "LEUCHARS", "PENICUIK", "`ROYAL BOTANICAL GARDEN`",
+  "BENMORE"
+)
+
+# Plot all prediction against actual values
+plot_actual_pred(data, station, covariates)
+```
+
+We can see from the figure above that for all of the months we have a 
+concentration of points on the $y=x$ line. 
+This suggests that the linear models are producing good estimates of the daily 
+$\text{TMAX}$ for the BRAEMAR weather station for each month where there does not seem to 
+be a difference between the months. However we will give a more detailed explanation
+when we look at the proper scores for each of the linear models for each month. 
+The months are indicated by numbers where 1 = January, 2 = February, ... , 12 = December. 
+Furthermore, what is nice about these plots that not only they show us how well 
+the model has predicted the values but also how the conglomeration of points 
+moves throughout the months. We can see that for the winter months the points 
+are close to colder $\text{TMAX}$ values while for the summer months the concentration 
+of the points shifts upwards towards hotter temperatures.
+
+We can take it one step further by producing a time series plot to compare 
+the observed and predicted daily $\text{TMAX}$ values for BRAEMAR for a given year, 
+in the hope that they follow a similar pattern. In this 
+case I have plotted it for the year 1960, however we could have compared any other
+year. To do this I first created a separate linear model based on all the data for each month
+and then predicted the daily $\text{TMAX}$ values for day of 1960 using the respective model for 
+each month. Then we plotted the predicted and observed daily $\text{TMAX}$ values for the 
+given year, as seen below. This was done by using the $\textit{plot_year_pred_actual()}$
+function.
+
+```{r, fig.width=12, fig.height=8}
+data <- readRDS(file = "data/3_1_data.rds")
+
+# station of interest, the dependent variable of the linear model
+station <- "BRAEMAR"
+# covariates for the linear model
+covariates <- c(
+  "BALMORAL", "ARDTALNAIG", "FASKALLY",
+  "LEUCHARS", "PENICUIK", "`ROYAL BOTANICAL GARDEN`",
+  "BENMORE"
+)
+
+# Plot all prediction against actual values for a given year time series plot
+plot_year_pred_actual(data, 1960, station, covariates)
+```
+
+From the plot above we can see that the linear model predictions for the daily 
+$\text{TMAX}$ values closely fit the observed values of $\text{TMAX}$ for 1960, for all months. 
+Again this shows us that the linear model for each month does in fact predict well,
+we will further look into this when looking at the proper scores, in the next section.
+Furthermore, this highlights the power of using a linear model for each month
+since we can clearly see the seasonal trend where the summer months have higher $\text{TMAX}$ 
+values than the winter months.
+
+We will now take a step further and look at our linear models in depth. In particular,
+we are interested in the coefficient of each of the covariates, this is because, they
+will in fact indicate which stations have more predictive power for BRAEMAR. This is 
+because if one of the other stations has a larger coefficient this means that 
+they have more influence on the estimate of the linear model. Below I have extracted 
+the coefficients for each of the covariates (other weather stations) for each month.
+
+
+```{r}
+# Read in data used to calculate the coefficients of the model
+data_coeff <- readRDS(file = "data/3_1_data_coeff.rds")
+
+names(data_coeff)[7] <- "ROYAL_BOTANICAL_GARDEN"
+
+# Calculate coefficients of the models
+knitr::kable(data_coeff, digits = 4)
+```
+
+From the coefficients above we can separate the covarites into four groups where the 
+coefficient values are similar. The first group is the BALMORAL station on its own. 
+We can see that the coefficients over all months for the BALMORAL 
+weather station, are the largest, where the values range from 0.548 to 0.730. 
+Indicating a large predictive power for BRAEMAR.
+
+The second group of stations are the stations ARDTALNAIG and FASKALLY
+these have similar coefficients values over all months. In particular, 
+these are coefficients are smaller than the BALMORAL ones. But, they 
+are all greater than zero and these coefficients fall within the range of 0.088 to 0.268.
+
+The next group is the station PENICUIK which has coefficients within the range 
+of 0.065 to 0.168. The coefficients are smaller than that of ARDTALNAIG and FASKALLY 
+but still have some predictive power.
+
+The final group of stations are LEUCHARS, ROYAL BOTANICAL GARDEN and BENMORE. These
+stations have coefficient values which many are close to zero and the 
+majority are negative. These values range from ranging from -0.133 to 0.077. Notice
+that a negative coefficient suggests that as the independent variable increase, 
+the dependent variable tends to decrease, which suggests an inverse relation between
+them.
+
+Furthermore, it seems that the coefficient values per month seem to be relatively 
+consistent. In the sense that coefficient value of each station is always the same for 
+each month, that is BALMORAL always has the largest coefficient followed by 
+ARDTALNAIG, FASKALLY and PENICUIK and then LEUCHARS, ROYAL BOTANICAL GARDEN and BENMORE.
+Furthermore, the coefficient values for each of the linear models seem to also vary 
+around the same values for each of the month with no model being significantly 
+more different than another one. Suggesting that there is no clear season differnece 
+in the models produced.
+
+We have now identified four groups of stations, we now need to explain why some 
+stations have better predictive power than others. To do this we will begin by 
+analyzing the spatial location of these weather stations. To do this we will begin 
+by visualizing the relative position of BRAMEAR with respect to the other stations.
+
+```{r, fig.width=12, fig.height=8}
+# Plot the spatial locations of the stations
+plot_locations(ghcnd_stations)
+```
+
+We can see from the plot above that the BRAMEAR station is one of the most northern 
+located stations. We can see that BRAMEAR is in fact very close to the BALMORAL 
+station which is also located in the north. As mentioned above, we saw that the 
+coefficients for the BALMORAL covariate had the largest values, this hints us to observe
+that stations which are closer have more predictive power. In fact, 
+the next two station that are close to BRAMEAR
+are in ARDTALNAIG and FASKALLY which we saw had the second largest coefficients, again
+suggesting that the relative distance from the weather station provides a predictive 
+power for the linear models. Finally, we can see that the stations which are furthest away 
+that is BENOMORE, ROYAL BOTANICAL GARDEN, also have the smallest coefficients
+again indicating that distance is an important for the linear model. As a result, 
+this suggests that the relative position of a weather station provides predictive 
+power for the linear models. However, PENICUIK station which is in fact the station 
+which is furthest away from BRAMEAR had
+coefficients which had some predictive power, likewise the LEUCHARS station is in 
+a similar location to ARDTALNAIG and FASKALLY but does not have the same coefficient
+values as these stations. So this poses the following questions:
+
+1. Why does PENICUIK have positive coefficient values despite it being the station 
+which is furthest away?
+2. Why does LEUCHARS have small coefficient values, despite it being close to 
+ARDTALNAIG and FASKALLY which both have large coefficients with respect to LEUCHARS?
+
+To answer these question we can search for solutions in the elevation of the stations.
+
+```{r}
+# get elevations from ghcnd_stations
+elevations <- ghcnd_stations %>% select(c(Name, Elevation))
+
+knitr::kable(elevations, digits = 4)
+```
+
+From the table above we can see that the elevation of BRAMEAR is the highest at
+an elevation of 339m followed by BALMORAL at 283m and then PENICUIK at 185m. This
+in fact can explain why, even though PENICUIK is so far way from BRAMEAR, it had
+large coefficient values in the linear model, since it had a high elevation.
+Again, we can see that the stations with the lowest elevation in fact had the lowest 
+coefficient values, and in some cases negative indicating therefore indicating an 
+inverse relation between them. In fact the stations which have negative coefficients
+are LEUCHARS, ROYAL BOTANICAL GARDEN and BENMORE which have lowest elevations.
+Furthermore this also explains why LEUCHARS which is in a similar distance to BRAMEAR
+as ARDTALNAIG and FASKALLY had small coefficient values. This is because LEUCHARS 
+has the smallest elevation of 10m thus it does not have much predictive power despite 
+it being close to BRAMEAR.
+
+This suggests that stations which are close and have a similar elevation to BRAMEAR
+had more predictive power. Therefore, the spatial location 
+and elevation are fundamental in determining the coefficients of the linear models.
+Which means that stations which are similar geographically to BRAMEAR have 
+more predictive power. This explains why for example BALMORAL has large positive 
+coefficient values since it is geographically very similar to BRAMEAR in terms 
+of location and elevation. Thus, as the independent variable increases (BALMORAL), that
+is the $\text{TMAX}$ for this station, then we would also expect the dependent variable to increases 
+(BRAMEAR), daily $\text{TMAX}$ for BRAMEAR. 
+
+The last thing I would like to mention is the precipitation at BRAMEAR. By doing some 
+more investigation in particular by using the following website 
+https://en.climate-data.org/europe/united-kingdom/scotland/braemar-29849/ I found
+that the level of precipitation at this station is constant with an expected
+11-14 days of rain per month. As a result, if we could include a precipitation value
+to predict daily $\text{TMAX}$ scores perhaps we could have better predictions 
+for our models since we would be incorporating a key ingredient to predict
+temperatures.
+
+## Assessment
+
+Finally, in this section we will see how assess how well each linear model 
+predicts daily $\text{TMAX}$ for BRAMEAR. To do this we will calculate the expected 
+Absolute Error and Dawid-Sebastiani scores.
+
+Before we show the results we need to understand what each of these scores are 
+telling us. First of all both of these scores are $\textit{negatively oriented}$
+meaning that smaller values for the scores means that the models are better at
+predicting. Therefore, we aim to have the smallest values for the proper scores 
+for each of our models. In this case, $F$ is the predictive distribution.
+
+In particular the Absolute Error is given by:
+$$
+S_{AE}(F, y) = |y − \hat{y}_F |, \text{ where } \hat{y}_F \text{ is a point estimate under } F, \text{ e.g. the
+median } F^{−1}(1/2).
+$$
+And the Dawid-Sebastiani score is given by: 
+$$
+S_{DS}(F, y) = \frac{(y-\mu_F)^2}{\sigma^2_F} + 2log(\sigma^2_F), \text{ where } \mu_F \text{ is the mean estimate under } F, \text{ and } \sigma^2_F \text{ is the estimated prediction standard deviation }.
+$$
+Furthermore, the Absolute Error only involves the point prediction and not the 
+uncertainty about the prediction. That means it cares about how close the 
+predictions match to the observed data. In contrast to the Dawid-Sebastiani score
+which includes the uncertainty through the use of the estimated prediction 
+standard deviation. Therefore, if the Dawid-Sebastiani score is large this means
+that estimated prediction standard deviation is too large or too small, 
+compared with the difference between the prediction and observed value.
+
+In this case since we are interested in calculating the expected scores and given 
+the fact that we have a collection of forecast/prediction distributions $\{F_i\}$, 
+each predicting a single observation from the collection $\{y_i\}$. Therefore,
+we have a collection of prediction/observation pairs $\{(F_i, y_i)\}$. That means
+that the median $\hat{y}_F$ for the Absolute Error will be in fact the prediction 
+$F_i$ for the observation $y_i$. Likewise, the mean $\mu_F$ for the Dawid-Sebastiani 
+will also be the prediction $F_i$ for the observation $y_i$ and where the 
+$\sigma^2_F$ will be the estimated prediction standard deviation. 
+Notice that the Absolute Error will have the same units as the data while the 
+Dawid-Sebastiani is unitless, so we cannot compare them directly.
+
+As a result, this means that we will be finding the average for all of these 
+the prediction/observation pairs $\{(F_i, y_i)\}$, for a given proper score, that is:
+
+$$
+\hat{S}_{Proper Score}(\{F_i, y_i\}) = \frac{1}{N}\sum_{i=1}^N S_{Proper Score}(F_i, y_i)
+$$
+We calculate this value for each of the 10 cross-validations and then find the mean
+proper score over all the cross-validations to end up with one final score for
+each month. To do this we make use of the $\textit{calculate_proper_scores()}$
+function. Below are the scores for each of the months with the associated 
+standard deviation in the scores.
+
+```{r}
+proper_scores <- readRDS(file = "data/3_2_proper_scores.rds")
+
+knitr::kable(proper_scores, digits = 4)
+```
+
+We will begin by analyzing the Absolute Error. We can see that for all the months
+the absolute error ranges from 0.63 to 0.75. Furthermore, the standard deviation of these 
+scores are also very small, suggesting that we have accurate results. However, we
+need to understand what this in fact means. Recall, that the Absolute Error measures the distance
+between the observation and prediction, so it is measured in degrees celcius and since 
+all the absolute errors are below 1, our models are all quite accurate. We can see that 
+the difference between the scores in fact does not vary by much which suggests 
+that there is no month which is considerably harder to predict than other months. Due to the 
+magnitude of the differences between the scores across all months. 
+However, we can see that as the move towards warmer months the 
+Absolute error score does increase in particular for May, June and July, suggesting 
+that perhaps the models find it slightly harder to predict the $\text{TMAX}$ for these months.
+Please note that this increase is still small even when compared to the colder months.
+
+We can now look at the Dawid-Sebastianis scores. We can see that the values range
+from 0.77 to 1.14, again there is not a large difference smallest and largest
+value. Furthermore, the standard deviation of these scores are small, suggesting good 
+estimates for these scores, however when we compare these to the Absolute Error 
+standard deviation they are in fact considerably larger. 
+We can see however, that the hotter months, May, June and July 
+again have higher Dawid-Sebastianis scores suggesting that these are in fact harder to predict
+than the other months. Notice that the Dawid-Sebastianis can be large if the 
+predictions are far from the observed point. As a result, this can be explained 
+using the Absolute Error. We can see that for these month we have 
+large values for the Absolute Error which in turn can explain why we see a large
+value for the Dawid-Sebastianis scores, since the Absolute Errors between the
+scores are in fact far away.
+
+We can take it one step further and see how the coefficient of the linear models 
+vary with the proper scores of the months. As we have seen before the coefficient 
+of each station seems to be consistent throughout all the months, which means 
+that the linear models for each month are similar. As a result, since the 
+Dawid-Sebastianis and Absolute Error both increase for the hotter months, 
+in particular May, June and July.
+This means that, since the linear models are in fact similar across the months, 
+the models have difficulties when trying to predict hotter months.
+
+Below we have plotted the proper scores against the month to visualize the 
+data easier. I have chosen to plot them on different axis due to the fact 
+that they do not have the same units.
+
+```{r, , fig.width=12, fig.height=8}
+plot_proper_scores(proper_scores)
+```
+
+In fact from the graph we can see that the Dawid-Sebastianis and Absolute Error
+scores follow a parabolic shape, where the peaks are at the summer months. Again, 
+this is consistent with the discussion from above. Furthermore, 
+with this visualization we in fact see other months which have similar 
+Dawid-Sebastianis scores to the hotter months, that is May, June and July. In particular, April 
+and September where the Dawid-Sebastianis scores are above 0.9. This is also consistent with 
+the Absolute Error score are also large. This suggests that for these months they 
+are also difficult to predict in comparison to the winter months. To be concrete, 
+we can see that both the Dawid-Sebastianis and Absolute Error proper
+score increase in the hotter months, May, June and July, and then decrease in the
+winter months, suggesting that prediction models find it harder to predict the
+hotter months.
+
+Furthermore, we can see that both scores are correlated, when one increase the other
+does too, but to what extent? To show this relation between the two scores 
+we have calculated the difference between them, that is the Dawid-Sebastiani 
+- Absolute Error, we can now use this value to talk about these scores together. 
+When we see a large difference between the scores this suggests that either the 
+Dawid-Sebastiani is large or the Absolute Error is small. Recall that, the Dawid-Sebastianis measures if the models prediction uncertainty is appropriate or not. Therefore, the reasons for a high Dawid-Sebastianis could be because the models do not take into account the uncertainty
+of the prediction well.
+
+Take for example the months of May and June which have similar 
+absolute errors are given by 0.7527 and 0.7397  
+respectively. However, the difference between the scores for each month 
+are noticeable, in particular we have 0.3884 and 0.2747. Since the Absolute errors 
+are relatively similar for both months, then the rise in difference 
+must be due to the Dawid-Sebastiani scores. Since the point estimate predictions have similar
+error, this is known by the Absolute Error. Therefore, in the model for May, it 
+must be the case that prediction residual standard deviation differs from the prediction 
+standard deviation more than for June. This means that May has more uncertainty 
+than June, in turn we can conclude that the model for June is better than the model for May.
+This example particularly highlights the power of the Dawid-Sebastiani score. Since we 
+can see that even though two models seem to be preforming the same with the 
+Absolute Error score the Dawid-Sebastiani score gives us more information about 
+the uncertainty with regards to the predictions.
+
+As a result, we can see form the table that the months with the largest 
+difference are in fact the warmer, summer months, again this suggests that 
+these months are harder to predict with the linear model with respect to 
+the winter months. 
+
+To conclude, in this section we have managed to make separate linear models
+for each month for the BRAMEAR to predict the daily $\text{TMAX}$. We analyzed 
+the coefficients of the models to see which stations had more predictive power 
+and we saw that stations that where geographically similar to the station we 
+are trying to predict had more predictive power. We then assessed how well these linear models
+where for each moths by using two different scores. We concluded that the summer
+months where in fact harder to predict than the winter months by analyzing the
+values of the Absolute Error and Dawid-Sebastiani score for each linear model.
+
+# Code appendix
+
+## Function definitions
+
+```{r code=readLines("my_functions.R"), eval=FALSE}
+```
+
+## Analysis code
+
+```{r code=readLines("my_code.R"), eval=FALSE}
+```

@@ -1,0 +1,606 @@
+---
+title: "StatComp Project 1: Numerical Statistics"
+author: "Lorenzo Stigliano (s1725018, LorenzoStigliano)"
+output:
+  html_document:
+    number_sections: yes
+  pdf_document:
+    number_sections: yes
+header-includes:
+  - \newcommand{\bm}[1]{\boldsymbol{#1}}
+  - \newcommand{\mat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+  - \usepackage{amsmath}
+---
+
+```{r setup, include = FALSE}
+# Modify this setup code chunk to set options
+# or add extra packages etc if needed,
+# but keep the echo=FALSE,eval=TRUE default settings here.
+
+# Set default code chunk options
+knitr::opts_chunk$set(
+  echo = FALSE,
+  eval = TRUE
+)
+
+suppressPackageStartupMessages(library(tidyverse))
+library(StatCompLab)
+theme_set(theme_bw())
+```
+
+```{r code=readLines("code.R")}
+source("code.R")
+```
+
+```{r code=readLines("my_code.R")}
+source("my_code.R")
+```
+
+# Confidence interval approximation assessment
+
+## Question 1.1
+For this question please have a look at 3.1 "Function definitions" where one can 
+find the definition of the function multi_pois_CI(m, n, lambda, alpha, type). 
+This function will be used in the subsequent sections.
+
+## Question 1.2
+We need to show that the widths of the $\lambda$-intervals for parameterisation type 1 and 2 are always identical to each other, for any given observation vector $y$ and confidence level $1 - \alpha$. We have that the parameterisation type 1 is:
+
+$$
+\left( max\left(0, \hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\right),\left(\hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}}\right)\right)
+$$
+
+Likewise, the parameterisation for type 2 is: 
+$$
+\left( max\left(0, \hat{\theta}_{ML} - \sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2,\left(\hat{\theta}_{ML} - \sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\right)
+$$
+
+In this case $\hat{\theta}_{ML} = \sqrt{\hat{y}}$ and $\hat{y} = \frac{1}{n}\sum_{i=1}^n y_i$ 
+
+We will first calculate the width of the parameterisation for type 1. We can simply evaluate it as $\left(\hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}}\right) - max\left(0, \hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\right)$, now suppose that $max\left(0, \hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\right) \ne 0$, because otherwise the width would simply be equal to $\hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}}$. We get the following.
+
+\begin{align*}
+    &\hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} - \left(\hat{y} -  \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\right) \\    
+    &=\hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} - \hat{y} + \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\\
+   &=\sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} 
+\end{align*}
+
+Now we must show that the parameterisation for type 2 is the same. First to solve this we can substitute $\hat{\theta}_{ML} = \sqrt{\hat{y}}$, to get the following expression:
+$$
+\left( max\left(0, \sqrt{\hat{y}} - \sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2,\left(\sqrt{\hat{y}} - \sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\right)
+$$ 
+
+Now let $max\left(0, \sqrt{\hat{y}} - \sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2 \ne 0$ then we have that the width is equal to: 
+\begin{align*}
+    &\left(\sqrt{\hat{y}}-\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2 - \left( \sqrt{\hat{y}} - \sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2\\
+    &=\left(\sqrt{\hat{y}}\right)^2- 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2-
+    \left(\sqrt{\hat{y}}\right)^2+ 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)-
+    \left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2\\
+    &= - 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)+
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2+ 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)-
+    \left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2 \\
+    &=\left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2-
+    \left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2 +
+    2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right) - 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)\\
+   &=\frac{1}{4n}\left(z_{\frac{\alpha}{2}}\right)^2-\frac{1}{4n}\left(z_{1-\frac{\alpha}{2}}\right)^2 +
+    \sqrt{\hat{4\lambda}}\left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right) - \sqrt{\hat{4\lambda}}\left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)\\
+     &=\frac{1}{4n}\left(z_{\frac{\alpha}{2}}\right)^2-\frac{1}{4n}\left(z_{\frac{\alpha}{2}}\right)^2 +
+    \left(\sqrt{\frac{4\hat{y}}{4n}}z_{1-\frac{\alpha}{2}}\right) - \left(\sqrt{\frac{4\hat{y}}{4n}}z_{\frac{\alpha}{2}}\right)\\
+    &=\left(\sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\right) - \left(\sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}}\right)\\
+        &=\sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}}
+\end{align*}
+Note that $\frac{1}{4n}\left(z_{\frac{\alpha}{2}}\right)^2-\frac{1}{4n}\left(z_{1-\frac{\alpha}{2}}\right)^2 = 0$, this is due to the symmetric properties of the normal distribution we have that $z_{\frac{\alpha}{2}} = -z_{1-\frac{\alpha}{2}}$. Therefore, if we square both sides
+we get that the expressions are exactly the same.
+
+We can see that this width for type 2 parameterisation is exactly the same width 
+as type 1 parameterisation. As a result, we have shown that the widths are the same.
+
+Below I have provided a small snippet of code to show that this is indeed the 
+case. When $n = 100$, $\alpha = 0.05$ and $\lambda = 1$.
+
+```{r 1.2}
+#Here we will be setting the seed to produce the same results after every knit.
+set.seed(123)
+
+#Small test to show the difference between type 1 and 2 parameterisation is the same.
+y = rpois(n = 100, lambda = 1)
+CI_1 = pois_CI(y, alpha = 0.05, type = 1)
+CI_2 = pois_CI(y, alpha = 0.05, type = 2)
+#Creating dataframe to show the difference between the two types
+dataframe = data.frame(Type_1_Difference = CI_1[1]-CI_1[2], Type_2_Difference = CI_2[1]-CI_2[2])
+```
+```{r}
+knitr::kable(dataframe, "simple")
+```
+
+## Question 1.3
+For this question please have a look at 3.1 "Function definitions" where one can find the 
+definition of the function tidy_multi_pois_CI(m, n, lambda, alpha). This function
+will be used in the subsequent sections, in particular 1.4 and 1.5.
+
+## Question 1.4
+
+In this question we are asked to estimate the coverage probability for nominal 
+confidence level $1 - \alpha = 90 \%$, for each of the three interval types, 
+for $n = 2, \lambda = 3$, using $m$ at least 100000, in this analysis we will be 
+using m=100000 what is meant by "Coverage probability", is the probability that 
+a computed confidence interval will contain the true parameter value and the 
+"Nominal coverage probability", is the coverage probability a confidence interval 
+procedure would have if it was perfectly constructed to give the desired 
+confidence level $1 - \alpha = 90 \%$. 
+
+That means in order to calculate the "Coverage probability" we need to find the 
+percentage of $\lambda = 3$ that fall inside of the confidence intervals we have 
+created. To do this we have made use of the $group\_by$, $summarise$ and 
+$filter\_by$ functions to avoid using for loops.
+
+1. $group\_by$: We first group by the type of parameterisation it is, 
+that is, 1, 2 or 3.
+2. $filter\_by$: We then filter the results to only include the confidence intervals 
+in which our parameter $\lambda$ is greater than the "Lower" bounds and less 
+than the the "Upper" bound of the $1 - \alpha = 90 \%$ constructed CI.
+3. $summarise$: Finally we summarised the data by find the proportions of these. 
+That is we calculated the "Coverage probability". We achieved this by using $n()$ 
+which counts all the rows divided by m which is the total number of CI we created.
+
+```{r 1.4}
+#Number of observations used for each sample
+n <- 2
+#Lambda the true parameter value
+lambda <- 3
+#Alpha for our problem
+alpha <- 0.10
+#Number of iterations
+m <- 100000
+
+#Create the data 
+data <- tidy_multi_pois_CI(m, n, lambda,alpha)
+
+#Here we are getting our desired data, that is we split it by type then we filter
+#by the CI that contain lambda and then we find the proportion of these
+summarized_data <- data %>% group_by(Type) %>% 
+                            filter(Lower < lambda & lambda < Upper) %>% 
+                            summarize(Coverage_probability =n()/m)
+```
+```{r}
+knitr::kable(summarized_data, "simple")
+```
+
+From the results we are trying to create 90\% nominal coverage probability, we would like for our results to be as close to 90\% as possible. We can see that type 1 has the smallest coverage probability at 82.832\%, well below the desired 90\% Nominal coverage probability. For type 2 we have the coverage probability being 89.426\% close to our desired 90\%. Finally, we can see that type 3 has the 
+largest coverage probability at 94.242\%.
+
+For our coverage probabilities we have two main desired properties:
+
+1. It has appropriate coverage under the true distribution, that is we wish it is as close to $1-\alpha$ as possible.In this case it is $90\%$.
+2. The intervals are narrow.
+
+We know from question 1.2 that for type 1 and type 2 the interval widths are of the same length. Therefore, we can conclude that the coverage probability for type one is less accurate than that of type 2 since the confidence intervals are not correctly centred around $\lambda$. This can be seen since the coverage probability for type 1 is 82.832\% well below our desired 90\%. Similarly the coverage probability for type 2 is very close to our desired 90\%. We need to explain why this is the case. To do this we can look at the confidence intervals created in each case. For type 1 the confidence interval is:
+
+$$
+\left( max\left(0, \hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}\right),\left(\hat{y} - \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}}\right)\right)
+$$
+
+While for type 2 it is in this case we assume that the max is not equal to zero: 
+
+\begin{align*}
+    &\left( \left(\hat{\theta}_{ML} - \sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2,\left(\hat{\theta}_{ML} - \sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\right)\\
+    &=\left(\left(\sqrt{\hat{y}}-
+    \sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2,
+    \left( \sqrt{\hat{y}} - \sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\right)\\
+    &=\left(\left(\sqrt{\hat{y}}\right)^2- 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)+
+    \left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2,
+    \left(\sqrt{\hat{y}}\right)^2- 2\sqrt{\hat{y}}\left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)+
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\right)\\
+    &=\left(\hat{y}- 
+    \sqrt{\frac{\hat{y}}{n}}z_{1-\frac{\alpha}{2}}+
+    \left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2,
+    \hat{y}-
+    \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} +
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\right)
+\end{align*}
+
+We can see that these are indeed the same as the confidence interval for type one but they are shifted to the right by a factor of $\left(\sqrt{\frac{1}{4n}}z_{1-\frac{\alpha}{2}}\right)^2$, which is always positive, notice that this is the same on both sides of the confidence interval due to the property of symmetry of the normal distribution.
+
+What we need to understand now is: why shifting these intervals to the right does in fact increase the coverage probability of type 2 parameterisation. To understand this we can look at the c.d.f of a Poisson distribution, since this is the distribution where the samples come from. When $\lambda = 3$, then we have that the $P(x\leq 3) \approx 0.647$. This suggests that the Poisson distribution is $\textbf{left}$ heavy. As a result, when we sample from the distribution with $\lambda = 3$ we get most of our samples less than or equal to 3. Therefore, since type 2 is shifted to the right, towards 3, we can see that it is the case that we get that the CI are centred closer to $\lambda$, as a result the confidence intervals will contain $\lambda$ more often. This can be seen since the coverage probability is 89.426\% close to our desired of 90\%, in contrast to type 1 where the coverage probability is 89.426\%.
+
+We can also see that the coverage probability for type 3 is 94.242\%, we need to see why this is the case. We will show that this is the case due to the fact the confidence intervals are wider than that of type 2. This is because if the intervals are are wide this would result in a large coverage probability since it is more likely for $\lambda$ to fall within this range.
+
+We have that the type 3 parametrisation is given by:
+
+$$
+\left( e^{\left(\hat{\theta}_{ML} - \sqrt{\frac{1}{e^{(\hat{\theta}_{ML})}n}}z_{1-\frac{\alpha}{2}}\right)},e^{\left(\hat{\theta}_{ML} - \sqrt{\frac{1}{e^{(\hat{\theta}_{ML})}n}}z_{\frac{\alpha}{2}}\right)}\right)
+$$
+Where in this case $\hat{\theta}_{ML} = log({\hat{y}})$ and $\hat{y} = \frac{1}{n}\sum_{i=1}^n y_i$, we will show that the right bound for the confidence interval is greater than the right bound for type 2, then this means that it is wider, due to symmetry of the bounds. 
+
+\begin{align*}
+    e^{\left(\hat{\theta}_{ML} - \sqrt{\frac{1}{e^{(\hat{\theta}_{ML})}n}}z_{\frac{\alpha}{2}}\right)} &> 
+    \hat{y}-
+    \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} +
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\\
+    e^{\left(log({\hat{y}}) - \sqrt{\frac{1}{e^{(log(\hat{y})}n}}z_{\frac{\alpha}{2}}\right)} &> 
+    \hat{y}-
+    \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} +
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\\
+    \hat{y}e^{-\sqrt{\frac{1}{\hat{y}n}}z_{\frac{\alpha}{2}}} &> 
+    \hat{y}-
+    \sqrt{\frac{\hat{y}}{n}}z_{\frac{\alpha}{2}} +
+    \left(\sqrt{\frac{1}{4n}}z_{\frac{\alpha}{2}}\right)^2\\
+    e^{-\sqrt{\frac{1}{\hat{y}n}}z_{\frac{\alpha}{2}}} &> 
+    1-
+    \sqrt{\frac{1}{n\hat{y}}}z_{\frac{\alpha}{2}} +
+   \frac{1}{4n\hat{y}}z_{\frac{\alpha}{2}}^2
+\end{align*}
+
+Let $x = \sqrt{\frac{1}{n\hat{y}}}z_{\frac{\alpha}{2}}$, then we have:
+
+$$
+e^{-x} > 1 - x + \frac{1}{4}x^2
+$$
+
+We can see that $x = \sqrt{\frac{1}{n\frac{1}{n}\sum_{i=1}^ny_i}}z_{\frac{\alpha}{2}} = \sqrt{\frac{1}{\sum_{i=1}^ny_i}}z_{\frac{\alpha}{2}}$, this value simply goes to zero as more samples for $y$ are added. Therefore, $e^{-x}$ goes to $1$.
+Since the left hand side is $1 - x + \frac{1}{4}x^2$, this expression will always be less than 1 since $x < 1$. 
+
+As a result we have shown that the credible interval for type three is greater 
+than the other two types as a result we see that the intervals are wider. This 
+result in that we get larger coverage probability for type 3, since $\lambda$ is
+more likely to fall within the interval created.
+
+To conclude, I believe that the best parametrisation for this distribution is type
+2, since the shift to the right allows it for better confidence intervals for when 
+lambda increases. We can also note that type 3 as mentioned before, even though it
+has a large coverage probability is not desirable since the intervals are not narrow
+as we shall see in the next section. Finally, type 1 is narrow but not accurate 
+due to the nature of the poisson distribution, using this method it fails to capture
+the fact that the poisson is left tail heavy.
+
+
+## Question 1.5
+```{r 1.5.1, warning = FALSE}
+#Using the data we created in 1.4 we can now create a new data frame with the 
+#difference and the type as the two columns, here we subtract "Upper" from 
+#"Lower" to get the difference.
+data_difference = data.frame(data[,2]-data[,1],data[,3])
+
+#Rename the columns.
+colnames(data_difference) <- c("Difference", "Type")
+#Plot the c.d.f of the difference making sure to separate by type.
+ggplot(data_difference) +
+  ylab("CDF") +
+  stat_ecdf(aes(x=Difference,colour=factor(Type))) +
+  ggtitle("Empirical CDFs for the interval widths for the three methods")
+```
+
+On the graph we can see that the empirical c.d.f for type 1 and type 2 are almost identical. This is expected since we are plotting the c.d.f of the interval widths and as a result these two types should
+follow a similar distribution for their widths. 
+We can see that the third type is shifted to the right that means that for type 3 parameterisation we have larger widths. This agrees with the coverage probability calculated in question 1.4 since we have a coverage probability for type 3 is 94.242\%, which is higher than desired of 90\%, from seeing the plot this makes sense since larger widths are less informative and we would expected $\lambda$ to fall within the confidence intervals more often.
+
+We will also mention why it is the case that it follows a stepwise shape. Since
+we are using $n=2$, the number of observations used for each 
+sample. In particular, when $\lambda = 3$, the $P(x\leq 8) \approx 0.996$, this 
+means that to produce a value greater than 8 it will have probability 
+$1-0.996$ $\approx 0.004$ 
+which means that it will be very unlikely to produce such a samples, therefore we 
+know that most of the samples produced will be less than 8, and will take on discrete values.
+As a result, there can only be a set of possible integers since the Poisson is a discrete
+distribution. Therefore, the mean of these observations which is used to produce 
+the intervals will take on a certain range of numbers. This will result in many 
+of the confidence intervals created will have similar bounds which in turn will 
+make them have the same width. This is what causes the steps in the c.d.f plot produced. 
+
+```{r 1.5.2}
+#Split the data frame by type
+difference_1 <- filter(data_difference, Type == 1)
+difference_2 <- filter(data_difference, Type == 2)
+difference_3 <- filter(data_difference, Type == 3)
+
+#Create the table for the median difference for each type
+median_difference_table = data.frame(Type = c(1,2,3), 
+                                     Median = c(median(difference_1$Difference), 
+                                                median(difference_2$Difference), 
+                                                median(difference_3$Difference)))
+```
+```{r}
+knitr::kable(median_difference_table, "simple")
+```
+
+For the medians we can see that the median for type 1 and type 2 methods are the same both at 4.029052. This is what we expected to see since we know that they have the same interval width therefore over a large number of iterations their medians should be the same. Similarly, for type 3, we have that the median is larger than the other 2 types (4.338752). This agrees with the plot since it is greater than the other 2. Also this suggests another reason as to why coverage probability calculated in question 1.4 for type 3 is 94.242\%, which is higher than desired of 90\%. Since the median for the intervals is larger than the other 2 types this means the intervals are wider and therefore we would expect to see $\lambda$ more often.
+
+# Archaeology in the Baltic sea
+
+## Question 2.1
+To show that the joint probability function for $p(N, Y)$ is given by:
+$$
+p(\boldsymbol{N}, \boldsymbol{Y}) = \frac{B(a,b)}{B(\tilde{a},\tilde{b})}\prod_{j=1}^{J}\left[p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}} \right]
+$$
+
+To do this we begin by find the joint probability distribution of all the variables, that is:
+
+\begin{align}
+    p(\boldsymbol{N}, \boldsymbol{Y}, \phi) &= p(\phi)p(\boldsymbol{N})p(\boldsymbol{Y}|\boldsymbol{N},\phi)\\
+    &=\frac{\phi^{a-1}(1 - \phi)^{b-1}}{B(a, b)}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}\phi^{Y_{j, i}}(1 - \phi)^{N_j- Y_{j, i}}
+    \right]\\
+    &=\frac{\phi^{a-1}(1 - \phi)^{b-1}}{B(a,b)}\prod_{j=1}^{J}\left[
+    p(N_j)\phi^{\sum_{i=1}^2 Y_{j, i}}(1 - \phi)^{ 2N_j-\sum_{i=1}^2Y_{j, i}}\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\\
+    &=\frac{\phi^{a-1}(1 - \phi)^{b-1}}{B(a,b)}\phi^{\left(\sum_{i,j} Y_{j, i}\right)}(1 - \phi)^{\left(2\sum_{j=1}^J N_j-\sum_{i,j}^2Y_{j, i}\right)}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\\
+    &=\frac{1}{B(a,b)}\phi^{a + \left(\sum_{i,j} Y_{j, i}\right) -1 }(1 - \phi)^{b +\left(2\sum_{j=1}^J N_j-\sum_{i,j}^2Y_{j, i}\right)-1}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\\
+    &=\frac{\phi^{a + \left(\sum_{i,j} Y_{j, i}\right) -1 }(1 - \phi)^{b +\left(2\sum_{j=1}^J N_j-\sum_{i,j}^2Y_{j, i}\right)-1}}{B(a,b)}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\\
+    &=\frac{\phi^{\tilde{a} -1 }(1 - \phi)^{\tilde{b}-1}}{B(a,b)}
+    \prod_{j=1}^{J}\left[p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}\right]
+\end{align}
+
+We can now use marginalization to find $p(\boldsymbol{N}, \boldsymbol{Y})$
+\begin{align}
+    p(\boldsymbol{N}, \boldsymbol{Y}) &= \int_{0}^{1} p(\boldsymbol{N}, \boldsymbol{Y}, \phi) d\phi\\
+    &=\int_{0}^{1} \frac{\phi^{\tilde{a} -1 }(1 - \phi)^{\tilde{b}-1}}{B(a,b)}
+    \prod_{j=1}^{J}\left[p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}\right] d\phi\\
+    &= \frac{1}{B(a,b)}
+    \prod_{j=1}^{J}\left[p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}\right] 
+    \int_{0}^{1} \phi^{\tilde{a} -1 }(1 - \phi)^{\tilde{b}-1}d\phi\\
+    &=\frac{1}{B(a,b)}
+    \prod_{j=1}^{J}\left[p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}\right] B(\tilde{a},\tilde{b})\\
+    &=\frac{B(\tilde{a},\tilde{b})}{B(a,b)}
+    \prod_{j=1}^{J}\left[p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}\right] 
+\end{align}
+
+I will briefly explain the steps I have taken. I first find the joint probability distribution of all the variables taking into account the parameters which are dependent on one another. Then I substitute the expressions for the ones that we where given, I made sure to take the product of these since the expressions is in vector form. Then once we have simplified this expression I use marginalization to find $p(\boldsymbol{N}, \boldsymbol{Y})$. When evaluating the integral we use the definition of the beta function and we get our desired result.
+
+## Question 2.2
+
+For this question please have a look at 3.1 "Function definitions" where one can 
+find the definition of the function log_prob_NY(N,Y,xi,a,b). This function will 
+be used in the subsequent sections.
+
+I will breifly show how I derived the expression for the log-probability which 
+is used in the function.We know that, by Question 2.1:
+$$
+    p(\boldsymbol{N}, \boldsymbol{Y})
+    =\frac{B(\tilde{a}, \tilde{b})}{B(a,b)}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]
+$$
+
+We can now take logs to both sides to derive our desired expression, we do this 
+since it is easier to calculate sums over multiplications.
+
+\begin{align*}
+    p(\boldsymbol{N}, \boldsymbol{Y})
+    &=\frac{B(\tilde{a}, \tilde{b})}{B(a,b)}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\\
+    log\left(p(\boldsymbol{N}, \boldsymbol{Y})\right)
+    &=log\left(\frac{B(\tilde{a}, \tilde{b})}{B(a,b)}\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\right)\\
+    &=log\left(\frac{B(\tilde{a}, \tilde{b})}{B(a,b)}\right)+log\left(\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\right)\\
+    &=log(B(\tilde{a}, \tilde{b})) - log\left(B(a,b)\right)+log\left(\prod_{j=1}^{J}\left[
+    p(N_j)\prod_{i=1}^2{N_j \choose Y_{j, i}}
+    \right]\right)\\
+    &=log(B(\tilde{a}, \tilde{b})) - log\left(B(a,b)\right)+\sum_{j=1}^{J}log(p(N_j))+\sum_{j=1}^{J}log\left(\prod_{i=1}^2{N_j \choose Y_{j, i}}\right)\\
+    &=log(B(\tilde{a}, \tilde{b})) - log\left(B(a,b)\right)+\sum_{j=1}^{J}log(p(N_j))+\sum_{j=1}^{J}\sum_{i=1}^2log{N_j \choose Y_{j, i}}\\
+    &=log(B(\tilde{a}, \tilde{b})) - log\left(B(a,b)\right)+\sum_{j=1}^{J}log(p(N_j))
+    +\sum_{j=1}^{J}log{N_j \choose Y_{j, 1}}
+     +\sum_{j=1}^{J}log{N_j \choose Y_{j, 2}}\\
+\end{align*}
+
+As a result this is the expression we use to calculate the log-probability in 
+the function call, we make use of the function $lchoose$ to calculate 
+$\sum_{j=1}^{J}log{N_j \choose Y_{j, 1}}$ and $\sum_{j=1}^{J}log{N_j \choose Y_{j, 2}}$. 
+Similarly we use the function $lbeta$ to calculate $log(B(\tilde{a}, \tilde{b}))$ 
+and $log\left(B(a,b)\right)$ and making sure we calculate the appropriate 
+values of $\tilde{a}$ and $\tilde{b}$.
+
+Note: I have also made sure that the function should return the logarithm of p(N,Y) 
+when the combination of N and Y is valid and should otherwise return -Inf, when 
+it isnt. I made sure than all N > Y for each row and checked that all values of 
+Y are greater than zero.
+
+## Question 2.3
+
+Here we are asked to construct a Bayesian credible interval for each Nj using 
+importance sampling, similarly to the method used in lab 4. For this question 
+please have a look at 3.1 "Function definitions" where one can 
+find the definition of the function arch_importance(K,Y,xi,a,b). This function 
+will be used in the subsequent sections for the analysis is Question 2.4 and 2.5.
+
+## Question 2.4
+
+In this question we are asked to use arch_importance() and the wquantile() 
+function with type=1 to compute credible intervals for $N_j$. In particular we will
+focus on the interval for N1 and how it changes when data from the other
+excavations are added. 
+
+To produce the results we will do the following:
+
+1. We use arch_importance() to create the log weights for the given number of 
+excavations. In this case we will compare it for $J = 1, 2, 3 \text{ and } 4$, 
+where $J$ is the number of excavations. As a result we iterate over the $J$s and 
+then we use the arch_importance function with the appropriate number of $J$s.
+2. We can then use wquantile() to create confidence intervals for $N_1$, making use
+of the log_weights calculated using arch_importance(), we make sure to take the 
+exp(), in order to get the weights.
+
+```{r 2.4, warning = FALSE}
+#Number of samples to generate 
+K <- 100000
+#Model parameters
+xi <- 1/1001
+a <- 1/2
+b <- 1/2
+
+#Create the dataframe which will hold the Lower and Upper bounds of the confidence 
+#Intervals
+credible_intervals <- data.frame(Lower = numeric(4), Upper = numeric(4))
+#Dataframe defining J, the number of excavations
+J_s <- data.frame(J = c(1:4))
+
+#Loop over the number of excavations progressively adding more form 1 to 4
+for (j in c(1:4)){
+  #Get the data for Y using arch_data()
+  Y_s <- arch_data(j)
+  #Calculate the importance data using arch_importance()
+  arch_importance_data <- arch_importance(K, Y_s, xi, a, b)
+  #Create the credible interval for N1, using the Log_weights
+  #Notice that we are creating 90% condidence intervals
+  credible_interval <- wquantile(arch_importance_data$N1, 
+                                 probs = c(0.05, 0.95),
+                                 weights = exp(arch_importance_data$Log_Weights),
+                                 type = 1)
+  #Add the credible interval to the credible_intervals dataframe
+  credible_intervals[j,] <- c(credible_interval)
+}
+
+#Join J_s and populated credible_intervals dataframes together 
+credible_interval_table <- cbind(J_s, credible_intervals)
+
+```
+```{r}
+knitr::kable(credible_interval_table, "simple")
+```
+
+We need to observe how the interval for $N_1$ changes when data from the other 
+excavations are added. We can see when we only use the data from one excavation 
+the credible interval is (314, 2468). Similarly, we can see that the credible 
+interval is smallest when data from 4 excavations where added (492, 1786). This 
+is what is expected since when we increase the number of samples we expect to be 
+confident and as a result we can create tighter credible intervals. We also note 
+that the credible interval we found make sense, stretches above the largest observation, 
+256, therefore all the confidence intervals are clearly compatible with the data.
+
+With regards to a point of view of an archaeology context, the credible intervals 
+observed makes sense. This is because as we increase the number of excavations, 
+assuming that $\phi$ remains constant, we become increasingly more confident in 
+our credible intervals since we are incorporating more data from more excavations. 
+This means we can get an better idea of how many potential people are buried in a 
+certain graveyard in that time.
+
+## Question 2.5
+
+In this question we where asked to produce credible intervals for $\phi$. To do
+this we need to update the arch_importance funtion to include one more column. 
+The samples for $\phi$ came from the conditional distribution Beta(a_tilda,b_tilda) 
+for each row of the importance samples.
+
+As a result we can produce confidence intervals for $\phi$ by using the log_weights
+calculated within the same function. 
+
+To produce the results we will do the following:
+
+1. We use arch_importance() to create the log weights for the given number of 
+excavations. In this case we will compare it for $J = 1 \text{ and } 4$.
+2. We can then use wquantile() to create confidence intervals for $\phi$, 
+making use of the log_weights calculated using arch_importance(), we make sure 
+to take the exp(), in order to get the weights.
+
+
+```{r 2.5, warning = FALSE}
+#Number of samples to generate 
+K <- 100000
+#Model parameters
+xi <- 1/1001
+a <- 1/2
+b <- 1/2
+
+#Create the dataframe which will hold the Lower and Upper bounds of the confidence 
+#Intervals for phi
+credible_intervals_phi <- data.frame(Lower = numeric(2), Upper = numeric(2))
+#Dataframe defining J, the number of excavations, in this case only 1 and 4
+J_s <- data.frame(J = c(1,4))
+
+#Counter used to index credible_intervals_phi
+i <- 1 
+
+#Loop over the number of excavations in this case only 1 and 4
+for (j in c(1,4)){
+  #Get the data for Y using arch_data()
+  Y_s <- arch_data(j)
+  #Calculate the importance data using arch_importance()
+  arch_importance_data <- arch_importance(K, Y_s, xi, a, b)
+  
+  #Create the credible interval for Phi, using the Log_weights
+  #Notice that we are creating 90% confidence intervals, and we use type = 7 
+  #because the data is continuous
+  credible_interval <- wquantile(arch_importance_data$Phi, 
+                                 probs = c(0.05, 0.95),
+                                 weights = exp(arch_importance_data$Log_Weights),
+                                 type = 7)
+  #Add the credible interval for phi to the credible_intervals_phi dataframe
+  credible_intervals_phi[i,] <- c(credible_interval)
+  #Update the counter to index correctly into credible_intervals_phi
+  i <- i + 1
+}
+
+#Join J_s and populated credible_intervals dataframes together 
+credible_interval_phi_table <- cbind(J_s, credible_intervals_phi)
+
+```
+```{r}
+knitr::kable(credible_interval_phi_table, "simple")
+```
+
+We need to observe how the interval for $\phi$ changes when data from the other 
+excavations are added. We can see that when we only use the data from one excavation 
+the credible interval is (0.10, 0.79), rounded to 2 significant figures. When all 
+the data is included we see that the credible interval for $\phi$ is (0.13, 0.33), 
+rounded to 2 significant figures.
+
+We can see that when we add more excavations the interval becomes narrower. 
+This makes sense form a point of view of an archaeology context. Since $\phi$ is 
+average detection probability. Since we include more excavations data we can 
+create a tighter interval for this parameter, this is because we become more 
+confident of the parameter over several excavations, since this parameter is 
+constant for all excavations.
+
+# Code appendix
+
+```{r code-appendix, include=FALSE}
+# Change the code chunk options to display
+# but not evaluate the code chunks in the appendix
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = FALSE
+)
+```
+
+## Function definitions
+
+```{r code=readLines("my_code.R")}
+```
+
+## Analysis code
+Snippet of code for question 1.2 to show that the widths of the $\lambda$-intervals 
+for parameterisation type 1 and 2 are always identical to each other.
+```{r ref.label="1.2"}
+```
+Snippet of code for question 1.4 to to estimate the coverage probability for 
+nominal confidence level $1 - \alpha = 90 \%$, for each of the three interval 
+types, for $n = 2, \lambda = 3$, using $m$ = 100000.
+```{r ref.label="1.4"}
+```
+Snippet of code for question 1.5 plot the empirical CDFs for the interval widths 
+for the three methods.
+```{r ref.label="1.5.1"}
+```
+Snippet of code for question 1.5 to calculate the median interval width for each 
+method.
+```{r ref.label="1.5.2"}
+```
+Snippet of code for question 2.4 where we create credible intervals for N1, we 
+vary the number of excavations from 1 to 4.
+```{r ref.label="2.4"}
+```
+Snippet of code for question 2.5 where we create credible intervals for Phi, in 
+this case we use the number of excavations to be 1 or 4. That is J = 1 and J = 4.
+```{r ref.label="2.5"}
+```
+
